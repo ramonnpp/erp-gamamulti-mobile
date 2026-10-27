@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -27,7 +28,6 @@ class _WebViewScreenState extends State<WebViewScreen> {
     _listenConnectivity();
   }
 
-  // Request Izin Kamera, Lokasi, dan Storage
   Future<void> _requestPermissions() async {
     await [
       Permission.camera,
@@ -40,18 +40,15 @@ class _WebViewScreenState extends State<WebViewScreen> {
     }
   }
 
-  // Fungsi mengunduh/membuka link cetak via Browser HP
   Future<void> _launchDownloadUrl(String url) async {
     final Uri uri = Uri.parse(url);
     try {
-      // Menggunakan LaunchMode.externalApplication agar langsung membuka browser HP (Chrome/Browser Bawaan)
       final launched = await launchUrl(
         uri,
         mode: LaunchMode.externalApplication,
       );
 
       if (!launched) {
-        // Fallback jika browser eksternal tidak merespon
         await launchUrl(uri, mode: LaunchMode.inAppWebView);
       }
     } catch (e) {
@@ -74,7 +71,6 @@ class _WebViewScreenState extends State<WebViewScreen> {
           onNavigationRequest: (NavigationRequest request) {
             final url = request.url.toLowerCase();
 
-            // Tangkap request cetak/export/download file
             if (url.contains('print') ||
                 url.contains('action=excel') ||
                 url.contains('action=pdf') ||
@@ -83,13 +79,11 @@ class _WebViewScreenState extends State<WebViewScreen> {
                 url.endsWith('.xlsx') ||
                 url.endsWith('.xls') ||
                 url.endsWith('.pdf')) {
-              // Paksa ubah HTTPS ke HTTP agar tidak terjadi ERR_NAME_NOT_RESOLVED
               String fixUrl = request.url;
               if (fixUrl.startsWith('https://')) {
                 fixUrl = fixUrl.replaceFirst('https://', 'http://');
               }
 
-              // Buka lewat Browser HP
               _launchDownloadUrl(fixUrl);
               return NavigationDecision.prevent;
             }
@@ -100,11 +94,9 @@ class _WebViewScreenState extends State<WebViewScreen> {
       )
       ..loadRequest(Uri.parse('http://erp.gamamulti.com/'));
 
-    // Konfigurasi Khusus Android
     if (controller.platform is AndroidWebViewController) {
       final androidController = controller.platform as AndroidWebViewController;
 
-      // Izinkan Geolocation (GPS)
       androidController.setGeolocationPermissionsPromptCallbacks(
         onShowPrompt: (request) async {
           await _requestPermissions();
@@ -115,9 +107,27 @@ class _WebViewScreenState extends State<WebViewScreen> {
         },
       );
 
-      // Izinkan Akses Kamera & Upload File
       androidController.setOnPlatformPermissionRequest((request) {
         request.grant();
+      });
+
+      // Menangani Pilih File (PDF, Excel, Foto Profil)
+      androidController.setOnShowFileSelector((
+        FileSelectorParams params,
+      ) async {
+        try {
+          final files = await FilePicker.pickFiles(type: FileType.any);
+
+          if (files.isNotEmpty) {
+            return files
+                .where((file) => file.path != null)
+                .map((file) => Uri.file(file.path!).toString())
+                .toList();
+          }
+        } catch (e) {
+          debugPrint('Error picking file: $e');
+        }
+        return [];
       });
     }
 
