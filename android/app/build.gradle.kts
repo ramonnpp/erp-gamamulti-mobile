@@ -43,3 +43,13 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+subprojects {
+    project.configurations.configureEach {
+        resolutionStrategy.eachDependency {
+            if (requested.group == "com.subsplash" && requested.name == "resemble") {
+                useVersion("1.0.0")
+            }
+        }
+    }
+}
