@@ -10,6 +10,10 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        // Aktifkan desugaring khusus Kotlin DSL
+        isCoreLibraryDesugaringEnabled = true
+        
+        // Gunakan Java 17 agar selaras dengan AGP/Kotlin terbaru
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -36,7 +40,7 @@ android {
 
 kotlin {
     compilerOptions {
-        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
 
@@ -52,4 +56,9 @@ subprojects {
             }
         }
     }
+}
+
+dependencies {
+    // Library Desugaring yang dibutuhkan flutter_local_notifications
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 }
