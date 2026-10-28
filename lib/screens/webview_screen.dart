@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -19,6 +20,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
   late final WebViewController _webViewController;
   late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
   bool _hasInternet = true;
+  final ImagePicker _imagePicker = ImagePicker();
 
   @override
   void initState() {
@@ -58,6 +60,34 @@ class _WebViewScreenState extends State<WebViewScreen> {
         );
       }
     }
+  }
+
+  // Dialog Opsi Pilihan Sumber File (Kamera vs Galeri/Dokumen)
+  Future<String?> _showSourceSelectionDialog() async {
+    return showModalBottomSheet<String>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt, color: Colors.blue),
+                title: const Text('Ambil Foto dari Kamera'),
+                onTap: () => Navigator.pop(context, 'camera'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.folder, color: Colors.amber),
+                title: const Text('Pilih Berkas / Galeri'),
+                onTap: () => Navigator.pop(context, 'file'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   void _initWebView() {
@@ -111,18 +141,30 @@ class _WebViewScreenState extends State<WebViewScreen> {
         request.grant();
       });
 
-      // Menangani Pilih File (PDF, Excel, Foto Profil)
+      // Pilihan Dinamis: Kamera Langsung / File Manager
       androidController.setOnShowFileSelector((
         FileSelectorParams params,
       ) async {
         try {
-          final files = await FilePicker.pickFiles(type: FileType.any);
+          final selectedSource = await _showSourceSelectionDialog();
 
-          if (files.isNotEmpty) {
-            return files
-                .where((file) => file.path != null)
-                .map((file) => Uri.file(file.path!).toString())
-                .toList();
+          if (selectedSource == 'camera') {
+            final XFile? photo = await _imagePicker.pickImage(
+              source: ImageSource.camera,
+              imageQuality: 85,
+            );
+            if (photo != null) {
+              return [Uri.file(photo.path).toString()];
+            }
+          } else if (selectedSource == 'file') {
+            final files = await FilePicker.pickFiles(type: FileType.any);
+
+            if (files.isNotEmpty) {
+              return files
+                  .where((file) => file.path != null)
+                  .map((file) => Uri.file(file.path!).toString())
+                  .toList();
+            }
           }
         } catch (e) {
           debugPrint('Error picking file: $e');
