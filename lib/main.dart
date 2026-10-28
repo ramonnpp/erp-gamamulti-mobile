@@ -22,7 +22,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       // Judul yang tampil pada layar Recent Apps / App Switcher
-      title: 'Gama Multi ERP',
+      title: 'ERP GMUM Mobile',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0B4A2E)),
